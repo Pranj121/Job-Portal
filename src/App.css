@@ -1,0 +1,30 @@
+/* Default theme = dark */
+body.dark-mode {
+  background-color: #01031a;
+  color: white;
+}
+
+body {
+  background-color: white;
+  color: black;
+}
+
+/* Navbar colors */
+.navbar {
+  background: transparent;
+  padding: 20px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.navbar a {
+  margin-right: 20px;
+  color: inherit;
+}
+
+.theme-btn {
+  background: none;
+  border: none;
+  font-size: 22px;
+  cursor: pointer;
+}
