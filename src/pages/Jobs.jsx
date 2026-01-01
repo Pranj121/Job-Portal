@@ -1,181 +1,189 @@
 // src/pages/Jobs.jsx
 import React, { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
 import JobCard from "../components/JobCard";
 
 export default function Jobs() {
+  const location = useLocation();
+
   const [jobs, setJobs] = useState([]);
+  const [appliedCounts, setAppliedCounts] = useState({});
+  const [savedJobs, setSavedJobs] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const [titleQuery, setTitleQuery] = useState("");
   const [locationQuery, setLocationQuery] = useState("");
 
-  const [appliedCounts, setAppliedCounts] = useState({}); // { job_id: count }
+  // 🔐 Admin check (set during admin login)
+  const isAdmin = localStorage.getItem("isAdmin") === "true";
 
-  // Load jobs
+  /* -------- LOAD JOBS -------- */
+  const loadJobs = async () => {
+    const { data, error } = await supabase
+      .from("jobs")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (!error) setJobs(data || []);
+  };
+
+  /* -------- LOAD APPLICATION COUNTS -------- */
+  const loadApplicationCounts = async () => {
+    const { data, error } = await supabase
+      .from("applications")
+      .select("job_id");
+
+    if (error) {
+      console.error(error);
+      return;
+    }
+
+    const counts = {};
+    data.forEach((app) => {
+      if (!app.job_id) return;
+      counts[app.job_id] = (counts[app.job_id] || 0) + 1;
+    });
+
+    setAppliedCounts(counts);
+  };
+
+  /* -------- INITIAL LOAD + AFTER APPLY -------- */
   useEffect(() => {
-    const loadJobs = async () => {
+    const init = async () => {
       setLoading(true);
-
-      const { data, error } = await supabase
-        .from("jobs")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      if (error) {
-        console.error("Error loading jobs:", error.message);
-        setJobs([]);
-      } else {
-        setJobs(data || []);
-      }
-
+      await loadJobs();
+      await loadApplicationCounts();
       setLoading(false);
     };
 
-    loadJobs();
-  }, []);
+    init();
 
-  // Load applications and compute "already applied" counts
-  useEffect(() => {
-    const loadApplications = async () => {
-      const { data, error } = await supabase
-        .from("applications")
-        .select("job_id");
+    // 🔁 clear refresh flag after ApplyJob redirect
+    if (location.state?.refresh) {
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
 
-      if (error) {
-        console.error("Error loading applications:", error.message);
-        setAppliedCounts({});
-        return;
-      }
-
-      const counts = {};
-      (data || []).forEach((app) => {
-        if (!app.job_id) return;
-        counts[app.job_id] = (counts[app.job_id] || 0) + 1;
-      });
-
-      setAppliedCounts(counts);
-    };
-
-    loadApplications();
-  }, []);
-
-  // Saved jobs (from localStorage)
-  const [savedJobs, setSavedJobs] = useState([]);
-
+  /* -------- LOAD SAVED JOBS -------- */
   useEffect(() => {
     try {
       const raw = localStorage.getItem("savedJobs");
-      if (raw) {
-        setSavedJobs(JSON.parse(raw));
-      }
-    } catch (e) {
-      console.error("Error reading savedJobs from localStorage", e);
+      if (raw) setSavedJobs(JSON.parse(raw));
+    } catch {
+      setSavedJobs([]);
     }
   }, []);
 
   const toggleSaveJob = (jobId) => {
     setSavedJobs((prev) => {
-      let next;
-      if (prev.includes(jobId)) {
-        next = prev.filter((id) => id !== jobId);
-      } else {
-        next = [...prev, jobId];
-      }
+      const next = prev.includes(jobId)
+        ? prev.filter((id) => id !== jobId)
+        : [...prev, jobId];
+
       localStorage.setItem("savedJobs", JSON.stringify(next));
       return next;
     });
   };
 
-  const handleClearFilters = () => {
-    setTitleQuery("");
-    setLocationQuery("");
+  /* -------- DELETE JOB (ADMIN ONLY) -------- */
+  const deleteJob = async (jobId) => {
+    if (!isAdmin) return;
+
+    const confirmDelete = window.confirm(
+      "Are you sure you want to delete this job?"
+    );
+    if (!confirmDelete) return;
+
+    const { error } = await supabase
+      .from("jobs")
+      .delete()
+      .eq("id", jobId);
+
+    if (error) {
+      console.error(error.message);
+      alert("Failed to delete job");
+    } else {
+      // remove job instantly from UI
+      setJobs((prev) => prev.filter((job) => job.id !== jobId));
+    }
   };
 
-  // Apply filters
-  const filteredJobs = jobs.filter((job) => {
-    const matchesTitle = job.title
-      .toLowerCase()
-      .includes(titleQuery.toLowerCase());
-
-    const matchesLocation = job.location
-      .toLowerCase()
-      .includes(locationQuery.toLowerCase());
-
-    return matchesTitle && matchesLocation;
-  });
+  /* -------- FILTER -------- */
+  const filteredJobs = jobs.filter((job) =>
+    (job.title || "").toLowerCase().includes(titleQuery.toLowerCase()) &&
+    (job.location || "").toLowerCase().includes(locationQuery.toLowerCase())
+  );
 
   if (loading) {
     return (
-      <main style={{ padding: "24px", color: "white" }}>Loading jobs...</main>
+      <main style={{ padding: "24px", color: "#111827" }}>
+        Loading jobs...
+      </main>
     );
   }
 
   return (
     <main style={{ padding: "24px", maxWidth: "900px", margin: "0 auto" }}>
-      {/* Filters row */}
-      <div
-        style={{
-          display: "flex",
-          gap: "12px",
-          marginBottom: "24px",
-          alignItems: "center",
-        }}
-      >
+      {/* Filters */}
+      <div style={{ display: "flex", gap: "12px", marginBottom: "24px" }}>
         <input
           placeholder="Search by title"
           value={titleQuery}
           onChange={(e) => setTitleQuery(e.target.value)}
-          style={{
-            flex: 1,
-            padding: "10px 12px",
-            borderRadius: "999px",
-            border: "1px solid #e5e7eb",
-          }}
+          style={inputStyle}
         />
         <input
           placeholder="Search by location"
           value={locationQuery}
           onChange={(e) => setLocationQuery(e.target.value)}
-          style={{
-            flex: 1,
-            padding: "10px 12px",
-            borderRadius: "999px",
-            border: "1px solid #e5e7eb",
-          }}
+          style={inputStyle}
         />
         <button
-          onClick={handleClearFilters}
-          style={{
-            padding: "10px 18px",
-            borderRadius: "999px",
-            border: "none",
-            background: "#fb7185",
-            color: "white",
-            cursor: "pointer",
-            fontWeight: 500,
+          onClick={() => {
+            setTitleQuery("");
+            setLocationQuery("");
           }}
+          style={clearBtn}
         >
           Clear Filters
         </button>
       </div>
 
-      {/* Job list */}
+      {/* Jobs */}
       {filteredJobs.length === 0 ? (
-        <p style={{ color: "white" }}>No jobs found.</p>
+        <p style={{ color: "#374151" }}>No jobs found.</p>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-          {filteredJobs.map((job) => (
-            <JobCard
-              key={job.id}
-              job={job}
-              isSaved={savedJobs.includes(job.id)}
-              onToggleSave={() => toggleSaveJob(job.id)}
-              appliedCount={appliedCounts[job.id] || 0}
-            />
-          ))}
-        </div>
+        filteredJobs.map((job) => (
+          <JobCard
+            key={job.id}
+            job={job}
+            isSaved={savedJobs.includes(job.id)}
+            onToggleSave={() => toggleSaveJob(job.id)}
+            appliedCount={appliedCounts[job.id] || 0}
+            onDelete={isAdmin ? () => deleteJob(job.id) : undefined}
+          />
+        ))
       )}
     </main>
   );
 }
+
+/* -------- STYLES -------- */
+const inputStyle = {
+  flex: 1,
+  padding: "10px",
+  borderRadius: "8px",
+  border: "1px solid #d1d5db",
+  background: "white",
+  color: "#111827",
+};
+
+const clearBtn = {
+  padding: "10px 16px",
+  borderRadius: "8px",
+  border: "none",
+  background: "#ef4444",
+  color: "white",
+  cursor: "pointer",
+};

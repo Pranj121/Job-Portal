@@ -1,23 +1,19 @@
 import React from "react";
 import { Link, useNavigate } from "react-router-dom";
 
-export default function Navbar({ theme, setTheme, isAdmin, onLogout }) {
+export default function Navbar({ isAdmin, onLogout }) {
   const navigate = useNavigate();
-
-  const toggleTheme = () => {
-    setTheme(theme === "dark" ? "light" : "dark");
-  };
 
   return (
     <nav
       style={{
         padding: "16px 24px",
-        background: theme === "dark" ? "#00081d" : "#f8f9fa",
-        color: theme === "dark" ? "white" : "black",
+        background: "#f8f9fa", // fixed light theme
+        color: "black",
         display: "flex",
         justifyContent: "space-between",
         alignItems: "center",
-        borderBottom: "1px solid #444",
+        borderBottom: "1px solid #e5e7eb",
       }}
     >
       {/* Left side */}
@@ -30,11 +26,14 @@ export default function Navbar({ theme, setTheme, isAdmin, onLogout }) {
           Jobs
         </Link>
 
-        <Link to="/saved-jobs" style={{ textDecoration: "none", color: "inherit" }}>
-          Saved Jobs ⭐
+        <Link
+          to="/saved-jobs"
+          style={{ textDecoration: "none", color: "inherit" }}
+        >
+          Saved Jobs
         </Link>
 
-        {/* Only admin can see Applications */}
+        {/* Admin-only links */}
         {isAdmin && (
           <Link
             to="/applications"
@@ -44,7 +43,6 @@ export default function Navbar({ theme, setTheme, isAdmin, onLogout }) {
           </Link>
         )}
 
-        {/* Only admin can post a job */}
         {isAdmin && (
           <Link
             to="/post-job"
@@ -57,22 +55,6 @@ export default function Navbar({ theme, setTheme, isAdmin, onLogout }) {
 
       {/* Right side */}
       <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
-        {/* Theme Toggle Button */}
-        <button
-          onClick={toggleTheme}
-          style={{
-            padding: "6px 12px",
-            borderRadius: "6px",
-            border: "1px solid gray",
-            background: theme === "dark" ? "#222" : "white",
-            color: theme === "dark" ? "white" : "black",
-            cursor: "pointer",
-          }}
-        >
-          {theme === "dark" ? "🌙" : "☀️"}
-        </button>
-
-        {/* Admin Login / Logout Button */}
         {!isAdmin ? (
           <button
             onClick={() => navigate("/admin-login")}

@@ -6,25 +6,28 @@ import { supabase } from "../lib/supabaseClient";
 export default function SavedJobs() {
   const navigate = useNavigate();
 
-  const [jobs, setJobs] = useState([]);       // full job rows from Supabase
+  const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [sortOrder, setSortOrder] = useState("newest");
-
-  // applied job ids (for "Applied" pill) – optional but nice
   const [appliedIds, setAppliedIds] = useState([]);
 
+  // Load applied jobs (for badge)
   useEffect(() => {
-    const storedApplied = JSON.parse(localStorage.getItem("appliedJobs") || "[]");
+    const storedApplied = JSON.parse(
+      localStorage.getItem("appliedJobs") || "[]"
+    );
     setAppliedIds(storedApplied);
   }, []);
 
-  // Load saved jobs from localStorage + Supabase
+  // Load saved jobs
   useEffect(() => {
     const loadSavedJobs = async () => {
       setLoading(true);
 
-      const savedIds = JSON.parse(localStorage.getItem("savedJobs") || "[]");
+      const savedIds = JSON.parse(
+        localStorage.getItem("savedJobs") || "[]"
+      );
 
       if (!savedIds.length) {
         setJobs([]);
@@ -41,7 +44,7 @@ export default function SavedJobs() {
         console.error("Error loading saved jobs:", error.message);
         setJobs([]);
       } else {
-        // Keep the same order as in savedIds
+        // Preserve saved order
         const ordered = savedIds
           .map((id) => data.find((j) => String(j.id) === String(id)))
           .filter(Boolean);
@@ -61,17 +64,16 @@ export default function SavedJobs() {
   };
 
   const handleRemoveOne = (id) => {
-    const savedIds = JSON.parse(localStorage.getItem("savedJobs") || "[]");
+    const savedIds = JSON.parse(
+      localStorage.getItem("savedJobs") || "[]"
+    );
     const next = savedIds.filter((x) => String(x) !== String(id));
     localStorage.setItem("savedJobs", JSON.stringify(next));
     setJobs((prev) => prev.filter((j) => String(j.id) !== String(id)));
   };
 
   const handleExportCsv = () => {
-    if (!jobs.length) {
-      alert("No saved jobs to export.");
-      return;
-    }
+    if (!jobs.length) return;
 
     const headers = ["Title", "Company", "Location", "Type", "Description"];
     const rows = jobs.map((j) => [
@@ -85,9 +87,7 @@ export default function SavedJobs() {
     const csv = [
       headers.join(","),
       ...rows.map((r) =>
-        r
-          .map((cell) => `"${String(cell).replace(/"/g, '""')}"`)
-          .join(",")
+        r.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(",")
       ),
     ].join("\n");
 
@@ -100,7 +100,7 @@ export default function SavedJobs() {
     URL.revokeObjectURL(url);
   };
 
-  // === Search + sort + group by company ===
+  // Search, sort, group by company
   const groupedJobs = useMemo(() => {
     let filtered = jobs;
 
@@ -130,11 +130,9 @@ export default function SavedJobs() {
     return groups;
   }, [jobs, search, sortOrder]);
 
-  const totalSaved = jobs.length;
-
   if (loading) {
     return (
-      <main style={{ padding: "32px 24px", color: "#111827" }}>
+      <main style={{ padding: "32px 24px" }}>
         Loading saved jobs...
       </main>
     );
@@ -146,15 +144,12 @@ export default function SavedJobs() {
         padding: "32px 24px",
         maxWidth: "1100px",
         margin: "0 auto",
-        color: "#111827",
       }}
     >
       <header style={{ marginBottom: "24px" }}>
-        <h1 className="text-2xl font-semibold mb-1">
-          Saved jobs <span>⭐</span>
-        </h1>
+        <h1 className="text-2xl font-semibold mb-1">Saved Jobs</h1>
         <p style={{ opacity: 0.8, fontSize: "14px" }}>
-          Jobs you have bookmarked to check later.
+          Jobs you have bookmarked to review later.
         </p>
       </header>
 
@@ -176,8 +171,8 @@ export default function SavedJobs() {
             fontSize: "13px",
           }}
         >
-          You have <strong>{totalSaved}</strong> saved job
-          {totalSaved === 1 ? "" : "s"}.
+          You have <strong>{jobs.length}</strong> saved job
+          {jobs.length === 1 ? "" : "s"}.
         </span>
 
         <button
@@ -207,7 +202,7 @@ export default function SavedJobs() {
             cursor: "pointer",
           }}
         >
-          Clear all
+          Clear All
         </button>
       </div>
 
@@ -249,9 +244,11 @@ export default function SavedJobs() {
         </select>
       </div>
 
-      {/* Grouped lists */}
+      {/* Grouped jobs */}
       {Object.keys(groupedJobs).length === 0 ? (
-        <p style={{ opacity: 0.8 }}>No saved jobs match your filters.</p>
+        <p style={{ opacity: 0.8 }}>
+          No saved jobs match your filters.
+        </p>
       ) : (
         Object.entries(groupedJobs).map(([company, companyJobs]) => (
           <section key={company} style={{ marginBottom: "24px" }}>
@@ -279,49 +276,18 @@ export default function SavedJobs() {
                   marginBottom: "10px",
                 }}
               >
-                {/* LEFT: job details */}
                 <div style={{ maxWidth: "70%" }}>
-                  <p
-                    style={{
-                      fontSize: "15px",
-                      fontWeight: 600,
-                      marginBottom: "2px",
-                    }}
-                  >
+                  <p style={{ fontSize: "15px", fontWeight: 600 }}>
                     {job.title}
                   </p>
-                  <p
-                    style={{
-                      fontSize: "13px",
-                      color: "#4b5563",
-                    }}
-                  >
+                  <p style={{ fontSize: "13px", color: "#4b5563" }}>
                     {job.company} — {job.location}
                   </p>
-                  <p
-                    style={{
-                      fontSize: "12px",
-                      color: "#6b7280",
-                      marginTop: "4px",
-                    }}
-                  >
+                  <p style={{ fontSize: "12px", color: "#6b7280" }}>
                     {job.type || job.job_type || "Job type not specified"}
                   </p>
-                  {job.description && (
-                    <p
-                      style={{
-                        fontSize: "12px",
-                        color: "#6b7280",
-                        marginTop: "6px",
-                      }}
-                    >
-                      {job.description.slice(0, 140)}
-                      {job.description.length > 140 ? "…" : ""}
-                    </p>
-                  )}
                 </div>
 
-                {/* RIGHT: actions */}
                 <div
                   style={{
                     display: "flex",
@@ -357,7 +323,7 @@ export default function SavedJobs() {
                         cursor: "pointer",
                       }}
                     >
-                      View details
+                      View Details
                     </button>
 
                     <button
@@ -384,3 +350,4 @@ export default function SavedJobs() {
     </main>
   );
 }
+

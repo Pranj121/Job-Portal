@@ -1,5 +1,5 @@
 // src/App.jsx
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
   BrowserRouter as Router,
   Routes,
@@ -20,36 +20,21 @@ import ApplyJob from "./pages/ApplyJob";
 import SavedJobs from "./pages/SavedJobs";
 
 function App() {
-  // Theme state (persisted)
-  const [theme, setTheme] = useState(
-    localStorage.getItem("theme") || "dark"
-  );
-
   // Admin state (persisted)
   const [isAdmin, setIsAdmin] = useState(
     localStorage.getItem("isAdmin") === "true"
   );
 
-  // Apply theme to <body>
-  useEffect(() => {
-    if (theme === "dark") {
-      document.body.classList.add("dark-mode");
-    } else {
-      document.body.classList.remove("dark-mode");
-    }
-    localStorage.setItem("theme", theme);
-  }, [theme]);
-
   // Admin login handler
   const handleAdminLogin = (password) => {
-    const ADMIN_PASSWORD = "admin123"; // change if you want
+    const ADMIN_PASSWORD = "admin123"; // demo password
 
     if (password === ADMIN_PASSWORD) {
       setIsAdmin(true);
       localStorage.setItem("isAdmin", "true");
-      return true; // success
+      return true;
     }
-    return false; // wrong password
+    return false;
   };
 
   // Admin logout handler
@@ -62,8 +47,6 @@ function App() {
     <Router>
       {/* Top navbar */}
       <Navbar
-        theme={theme}
-        setTheme={setTheme}
         isAdmin={isAdmin}
         onLogout={handleAdminLogout}
       />
@@ -73,7 +56,7 @@ function App() {
           {/* Public routes */}
           <Route path="/" element={<Home />} />
           <Route path="/jobs" element={<Jobs />} />
-          <Route path="/jobs/:id" element={<JobDetails />} />                              
+          <Route path="/jobs/:id" element={<JobDetails />} />
           <Route path="/jobs/:id/apply" element={<ApplyJob />} />
           <Route path="/saved-jobs" element={<SavedJobs />} />
 
@@ -103,7 +86,7 @@ function App() {
             }
           />
 
-          {/* Fallback: anything wrong -> /jobs */}
+          {/* Fallback */}
           <Route path="*" element={<Navigate to="/jobs" replace />} />
         </Routes>
       </div>
@@ -112,3 +95,4 @@ function App() {
 }
 
 export default App;
+

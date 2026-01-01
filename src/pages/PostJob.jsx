@@ -7,14 +7,15 @@ export default function PostJob() {
   const [title, setTitle] = useState("");
   const [company, setCompany] = useState("");
   const [location, setLocation] = useState("");
-  const [type, setType] = useState(""); // e.g. Full-time
+  const [type, setType] = useState("");
   const [description, setDescription] = useState("");
-
   const [loading, setLoading] = useState(false);
+
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     if (!title || !company || !location || !type || !description) {
       alert("Please fill all fields");
       return;
@@ -23,29 +24,16 @@ export default function PostJob() {
     setLoading(true);
 
     const { error } = await supabase.from("jobs").insert([
-      {
-        title,
-        company,
-        location,
-        type,
-        description,
-      },
+      { title, company, location, type, description }
     ]);
 
     setLoading(false);
 
     if (error) {
-      console.error("Error posting job:", error.message);
-      alert("Failed to post job. Check console.");
+      alert("Failed to post job");
+      console.error(error);
     } else {
-      alert("Job posted successfully!");
-      // clear form
-      setTitle("");
-      setCompany("");
-      setLocation("");
-      setType("");
-      setDescription("");
-      // go to jobs list
+      alert("Job posted successfully");
       navigate("/jobs");
     }
   };
@@ -53,13 +41,18 @@ export default function PostJob() {
   return (
     <main
       style={{
-        padding: "24px",
+        padding: "32px",
         maxWidth: "600px",
-        margin: "0 auto",
-        color: "white",
+        margin: "40px auto",
+        background: "white",
+        color: "#111827",
+        borderRadius: "12px",
+        boxShadow: "0 10px 30px rgba(0,0,0,0.08)",
       }}
     >
-      <h1 className="text-2xl font-semibold mb-4">Post a Job</h1>
+      <h1 style={{ fontSize: "24px", fontWeight: 600, marginBottom: "16px" }}>
+        Post a Job
+      </h1>
 
       <form
         onSubmit={handleSubmit}
@@ -69,40 +62,46 @@ export default function PostJob() {
           placeholder="Job title"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
+          style={inputStyle}
         />
         <input
           placeholder="Company"
           value={company}
           onChange={(e) => setCompany(e.target.value)}
+          style={inputStyle}
         />
         <input
           placeholder="Location"
           value={location}
           onChange={(e) => setLocation(e.target.value)}
+          style={inputStyle}
         />
         <input
-          placeholder="Job type (e.g. Full-time)"
+          placeholder="Job type (Full-time / Remote)"
           value={type}
           onChange={(e) => setType(e.target.value)}
+          style={inputStyle}
         />
         <textarea
           placeholder="Job description"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           rows={4}
+          style={inputStyle}
         />
 
         <button
           type="submit"
           disabled={loading}
           style={{
-            marginTop: "8px",
-            padding: "8px 16px",
-            borderRadius: "20px",
-            border: "none",
+            marginTop: "12px",
+            padding: "10px",
             background: "#2563eb",
             color: "white",
+            border: "none",
+            borderRadius: "8px",
             cursor: "pointer",
+            fontWeight: 500,
           }}
         >
           {loading ? "Posting..." : "Post Job"}
@@ -111,3 +110,12 @@ export default function PostJob() {
     </main>
   );
 }
+
+const inputStyle = {
+  padding: "10px",
+  borderRadius: "8px",
+  border: "1px solid #d1d5db",
+  fontSize: "14px",
+  color: "#111827",
+  background: "white",
+};
